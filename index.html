@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Venice.ai Image Generator</title>
+  <style>
+    /* Basic styles for layout and controls */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 300px;
+      padding: 20px;
+      background-color: #f4f4f4;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    .main {
+      flex: 1;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      padding: 8px;
+      margin: 4px 0;
+      box-sizing: border-box;
+    }
+    button {
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 10px;
+      color: blue;
+      font-size: 0.9em;
+    }
+    #imageDisplay {
+      max-width: 100%;
+      max-height: 80vh;
+      display: block;
+      margin-top: 20px;
+    }
+  </style>
+  <!-- Include JSZip from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Image Generator</h2>
+    <label for="apiKey">API Key:</label>
+    <input type="text" id="apiKey" placeholder="Enter your API key" />
+
+    <label for="prompt">Prompt:</label>
+    <textarea id="prompt" rows="4">a woman walking in the street</textarea>
+
+    <label for="stylePreset">Style Preset:</label>
+    <select id="stylePreset">
+      <option value="3D Model">3D Model</option>
+      <option value="Analog Film">Analog Film</option>
+      <option value="Anime">Anime</option>
+      <option value="Cinematic" selected>Cinematic</option>
+      <option value="Comic Book">Comic Book</option>
+    </select>
+
+    <label for="safeMode">Safe Mode:</label>
+    <input type="checkbox" id="safeMode" />
+
+    <label for="model">Model:</label>
+    <select id="model">
+      <option value="flux-dev-uncensored" selected>flux-dev-uncensored</option>
+      <option value="flux-dev">flux-dev</option>
+      <option value="fluently-xl">fluently-xl</option>
+      <option value="pony-realism">pony-realism</option>
+      <option value="stable-diffusion-3.5">stable-diffusion-3.5</option>
+      <option value="lustify-sdxl">lustify-sdxl</option>
+    </select>
+
+    <label for="height">Height:</label>
+    <input type="number" id="height" value="512" />
+
+    <label for="width">Width:</label>
+    <input type="number" id="width" value="512" />
+
+    <label for="steps">Steps:</label>
+    <input type="number" id="steps" value="30" />
+
+    <label for="hideWatermark">Hide Watermark:</label>
+    <input type="checkbox" id="hideWatermark" checked />
+
+    <button id="generateBtn">Generate Image</button>
+    <button id="batchBtn">Generate 10 Images and Save</button>
+    <button id="downloadBtn" disabled>Download Last Image</button>
+
+    <div id="status"></div>
+  </div>
+
+  <div class="main">
+    <img id="imageDisplay" src="" alt="Generated Image" />
+  </div>
+
+  <script>
+    // API endpoint
+    const API_URL = "https://api.venice.ai/api/v1/image/generate";
+
+    // Load saved values from localStorage on page load.
+    window.addEventListener('load', () => {
+      const savedApiKey = localStorage.getItem("apiKey");
+      if (savedApiKey) {
+        document.getElementById('apiKey').value = savedApiKey;
+      }
+      // You can also load other fields if desired.
+      const savedPrompt = localStorage.getItem("prompt");
+      if (savedPrompt) {
+        document.getElementById('prompt').value = savedPrompt;
+      }
+    });
+
+    // Save API key (and prompt) to localStorage when they change.
+    document.getElementById('apiKey').addEventListener('input', function() {
+      localStorage.setItem("apiKey", this.value);
+    });
+    document.getElementById('prompt').addEventListener('input', function() {
+      localStorage.setItem("prompt", this.value);
+    });
+
+    // Utility: generate a random seed
+    function getRandomSeed() {
+      return Math.floor(Math.random() * 1000000000);
+    }
+
+    // Update status message in the UI
+    function updateStatus(message) {
+      document.getElementById('status').innerText = message;
+    }
+
+    // Helper to get the API key with "Bearer " prepended.
+    function getApiKey() {
+      let key = document.getElementById('apiKey').value.trim();
+      if (!key) return "";
+      if (!key.startsWith("Bearer ")) {
+        key = "Bearer " + key;
+      }
+      return key;
+    }
+
+    // Generate a single image and display it
+    async function generateImage() {
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        updateStatus("Please enter your API key.");
+        return;
+      }
+      const prompt = document.getElementById('prompt').value;
+      const stylePreset = document.getElementById('stylePreset').value;
+      const safeMode = document.getElementById('safeMode').checked;
+      const model = document.getElementById('model').value;
+      const height = parseInt(document.getElementById('height').value) || 512;
+      const width = parseInt(document.getElementById('width').value) || 512;
+      const steps = parseInt(document.getElementById('steps').value) || 30;
+      const hideWatermark = document.getElementById('hideWatermark').checked;
+      const seed = getRandomSeed();
+
+      const payload = {
+        prompt: prompt,
+        style_preset: stylePreset,
+        safe_mode: safeMode,
+        model: model,
+        height: height,
+        width: width,
+        steps: steps,
+        seed: seed,
+        hide_watermark: hideWatermark
+      };
+
+      updateStatus(`Generating image with seed: ${seed} ...`);
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            "Authorization": apiKey,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          throw new Error("Request failed with status " + response.status);
+        }
+        const data = await response.json();
+        const imageB64 = data.images[0];
+        const dataUrl = "data:image/png;base64," + imageB64;
+        document.getElementById('imageDisplay').src = dataUrl;
+        updateStatus(`Image generated successfully with seed: ${seed}`);
+        document.getElementById('downloadBtn').disabled = false;
+        // Store the last generated image data URL for download
+        window.lastImageDataUrl = dataUrl;
+      } catch (error) {
+        updateStatus("Error: " + error.message);
+      }
+    }
+
+    // Trigger download of the last generated image
+    function downloadImage() {
+      if (!window.lastImageDataUrl) {
+        updateStatus("No image to download.");
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = window.lastImageDataUrl;
+      a.download = `generated_image_${getRandomSeed()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Batch generate 10 images, add them to a ZIP, and download the ZIP file
+    async function generateBatchImages() {
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        updateStatus("Please enter your API key.");
+        return;
+      }
+      const prompt = document.getElementById('prompt').value;
+      const stylePreset = document.getElementById('stylePreset').value;
+      const safeMode = document.getElementById('safeMode').checked;
+      const model = document.getElementById('model').value;
+      const height = parseInt(document.getElementById('height').value) || 512;
+      const width = parseInt(document.getElementById('width').value) || 512;
+      const steps = parseInt(document.getElementById('steps').value) || 30;
+      const hideWatermark = document.getElementById('hideWatermark').checked;
+
+      // Create a new ZIP instance
+      const zip = new JSZip();
+
+      for (let i = 1; i <= 10; i++) {
+        const seed = getRandomSeed();
+        const payload = {
+          prompt: prompt,
+          style_preset: stylePreset,
+          safe_mode: safeMode,
+          model: model,
+          height: height,
+          width: width,
+          steps: steps,
+          seed: seed,
+          hide_watermark: hideWatermark
+        };
+
+        updateStatus(`Generating image ${i} of 10 with seed: ${seed}...`);
+        try {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+              "Authorization": apiKey,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) {
+            throw new Error("Request failed with status " + response.status);
+          }
+          const data = await response.json();
+          const imageB64 = data.images[0];
+          const filename = `generated_image_${i}_${seed}.png`;
+          // Add file to ZIP (indicating that the string is base64 encoded)
+          zip.file(filename, imageB64, { base64: true });
+          updateStatus(`Added image ${i} of 10 to ZIP.`);
+          // Optional delay between images (1 second)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          updateStatus("Error: " + error.message);
+          return;
+        }
+      }
+
+      updateStatus("Generating ZIP file...");
+      // Generate the ZIP file as a blob and trigger its download
+      zip.generateAsync({ type: "blob" }).then(function (content) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(content);
+        a.download = "generated_images.zip";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        updateStatus("Batch generation complete! ZIP file downloaded.");
+      });
+    }
+
+    // Attach event listeners to buttons
+    document.getElementById('generateBtn').addEventListener('click', generateImage);
+    document.getElementById('downloadBtn').addEventListener('click', downloadImage);
+    document.getElementById('batchBtn').addEventListener('click', generateBatchImages);
+  </script>
+</body>
+</html>
