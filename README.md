@@ -1,7 +1,7 @@
 
 # Venice.ai Images Generater
 
-An unofficial, browser-based image generator that uses the [Venice.ai API](https://venice.ai) to convert text prompts into images. With support for single image generation and batch creation (10 images at a time), this tool runs entirely in your web browser—no backend required.
+An unofficial, browser-based image generator that uses the [Venice.ai API](https://venice.ai/chat?ref=bwY1lo) to convert text prompts into images. With support for single image generation and batch creation (10 images at a time), this tool runs entirely in your web browser—no backend required.
 
 ## Live Demo
 
@@ -24,7 +24,7 @@ This tool sends POST requests directly from your browser to the Venice.ai API. Y
 
 ### Prerequisites
 
-- A valid [Venice.ai API](https://venice.ai) key.
+- A valid [Venice.ai API](https://venice.ai/chat?ref=bwY1lo) key.
 - A modern web browser with JavaScript enabled.
 - An active internet connection.
 
