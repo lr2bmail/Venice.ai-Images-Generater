@@ -5,143 +5,232 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Venice.ai Image Generator</title>
   <style>
-    /* Basic styles for layout and controls */
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', sans-serif;
       margin: 0;
       padding: 0;
       display: flex;
       height: 100vh;
-      background-color: #eaeaea;
+      background-color: #f5f7fa;
+      color: #333;
     }
+
     .sidebar {
-      width: 320px;
-      padding: 20px;
-      background-color: #ffffff;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-      box-sizing: border-box;
+      width: 360px;
+      padding: 24px;
+      background: linear-gradient(145deg, #ffffff, #f8fafc);
+      box-shadow: 4px 0 15px rgba(0,0,0,0.06);
       overflow-y: auto;
     }
+
     .main {
       flex: 1;
-      padding: 20px;
-      box-sizing: border-box;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      background: #ffffff;
     }
-    input, select, textarea, button {
-      width: 100%;
-      padding: 8px;
-      margin: 8px 0;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+
+    .control-group {
+      margin-bottom: 20px;
     }
-    button {
-      background-color: #007BFF;
-      color: #ffffff;
-      border: none;
-      font-weight: bold;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #status {
-      margin-top: 10px;
-      color: #007BFF;
-      font-size: 0.9em;
-    }
-    #imageDisplay {
-      max-width: 100%;
-      max-height: 80vh;
-      display: block;
-      margin-top: 20px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
+
     label {
-      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #444;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background-color: #1a73e8;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1557b0;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .batch-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .batch-group label,
+    .batch-group input,
+    .batch-group button {
+      flex: 1;
+    }
+
+    .image-display-area {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .image-item {
+      position: relative;
+      text-align: center;
+    }
+
+    .image-item img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .image-item button {
+      margin-top: 10px;
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    .progress-container {
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 14px;
+      color: #1a73e8;
+    }
+
+    .download-all-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .download-all-container button {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; box-shadow: none; }
+      .main { flex: none; }
+      .batch-group { flex-direction: column; gap: 8px; }
+      .batch-group input, .batch-group button { width: 100%; }
     }
   </style>
-  <!-- Include JSZip from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="sidebar">
     <h2>Image Generator</h2>
-    <label for="apiKey">API Key:</label>
-    <input type="text" id="apiKey" placeholder="Enter your API key" />
-
-    <label for="prompt">Prompt:</label>
-    <textarea id="prompt" rows="4" placeholder="Enter your prompt here">a woman walking in the street</textarea>
-
-    <label for="stylePreset">Style Preset:</label>
-    <select id="stylePreset">
-      <option value="3D Model">3D Model</option>
-      <option value="Analog Film">Analog Film</option>
-      <option value="Anime">Anime</option>
-      <option value="Cinematic" selected>Cinematic</option>
-      <option value="Comic Book">Comic Book</option>
-    </select>
-
-    <label for="safeMode">Safe Mode:</label>
+    <div class="control-group">
+      <label for="apiKey">API Key</label>
+      <input type="text" id="apiKey" placeholder="Enter your API key" />
+    </div>
+    <div class="control-group">
+      <label for="prompt">Prompt</label>
+      <textarea id="prompt" rows="4" placeholder="Describe your image"></textarea>
+    </div>
+    <div class="control-group">
+      <div class="select-pair">
+        <div>
+          <label for="stylePreset">Style Preset</label>
+          <select id="stylePreset">
+            <option value="3D Model">3D Model</option>
+            <option value="Analog Film">Analog Film</option>
+            <option value="Anime">Anime</option>
+            <option value="Cinematic" selected>Cinematic</option>
+            <option value="Comic Book">Comic Book</option>
+          </select>
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <select id="model">
+            <option value="flux-dev-uncensored" selected>Flux Dev Uncensored</option>
+            <option value="flux-dev">Flux Dev</option>
+            <option value="fluently-xl">Fluently XL</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="control-group">
+      <div class="select-pair">
+        <div>
+          <label for="aspectRatio">Aspect Ratio</label>
+          <select id="aspectRatio">
+            <option value="square" selected>Square (1024×1024)</option>
+            <option value="landscape">Landscape 3:2 (1264×868)</option>
+            <option value="cinema">Cinema 16:9 (1280×720)</option>
+          </select>
+        </div>
+        <div>
+          <label for="steps">Steps</label>
+          <input type="number" id="steps" value="30" min="10" max="100" />
+        </div>
+      </div>
+    </div>
+ <div class="checkbox-group">
+  <div class="checkbox-item">
     <input type="checkbox" id="safeMode" />
-
-    <label for="model">Model:</label>
-    <select id="model">
-      <option value="flux-dev-uncensored" selected>flux-dev-uncensored</option>
-      <option value="flux-dev">flux-dev</option>
-      <option value="fluently-xl">fluently-xl</option>
-      <option value="pony-realism">pony-realism</option>
-      <option value="stable-diffusion-3.5">stable-diffusion-3.5</option>
-      <option value="lustify-sdxl">lustify-sdxl</option>
-    </select>
-
-    <label for="height">Height:</label>
-    <input type="number" id="height" value="512" />
-
-    <label for="width">Width:</label>
-    <input type="number" id="width" value="512" />
-
-    <label for="steps">Steps:</label>
-    <input type="number" id="steps" value="30" />
-
-    <label for="hideWatermark">Hide Watermark:</label>
-    <input type="checkbox" id="hideWatermark" checked />
-
-    <label for="batchCount">Batch Count:</label>
-    <input type="number" id="batchCount" value="10" min="1" />
-
-    <button id="generateBtn">Generate Image</button>
-    <button id="batchBtn">Generate Batch Images and Save</button>
-    <button id="downloadBtn" disabled>Download Last Image</button>
-
-    <div id="status"></div>
+    <label for="safeMode">Safe Mode</label>
   </div>
-
+  <div class="checkbox-item">
+    <input type="checkbox" id="hideWatermark" checked />
+    <label for="hideWatermark">Hide Watermark</label>
+  </div>
+</div>
+    <div class="control-group">
+      <div class="batch-group">
+        <label for="batchCount">Batch Count</label>
+        <input type="number" id="batchCount" value="1" min="1" max="50" />
+        <button id="batchBtn">Generate Batch</button>
+      </div>
+    </div>
+    <div id="status">Ready to generate</div>
+  </div>
   <div class="main">
-    <img id="imageDisplay" src="" alt="Generated Image" />
+    <div class="download-all-container">
+      <button id="downloadAllBtn" disabled>Download All as Zip</button>
+    </div>
+    <div class="progress-container" id="progressContainer"></div>
+    <div class="image-display-area" id="imageDisplayArea"></div>
   </div>
 
   <script>
-    // API endpoint
     const API_URL = "https://api.venice.ai/api/v1/image/generate";
+    const aspectRatios = {
+      square: { width: 1024, height: 1024 },
+      landscape: { width: 1264, height: 868 },
+      cinema: { width: 1280, height: 720 }
+    };
+    let generatedImages = []; // Store image data for download
 
-    // Load saved values from localStorage on page load.
     window.addEventListener('load', () => {
       const savedApiKey = localStorage.getItem("apiKey");
-      if (savedApiKey) {
-        document.getElementById('apiKey').value = savedApiKey;
-      }
+      if (savedApiKey) document.getElementById('apiKey').value = savedApiKey;
       const savedPrompt = localStorage.getItem("prompt");
-      if (savedPrompt) {
-        document.getElementById('prompt').value = savedPrompt;
-      }
+      if (savedPrompt) document.getElementById('prompt').value = savedPrompt;
     });
 
-    // Save API key and prompt to localStorage when they change.
     document.getElementById('apiKey').addEventListener('input', function() {
       localStorage.setItem("apiKey", this.value);
     });
@@ -149,28 +238,22 @@
       localStorage.setItem("prompt", this.value);
     });
 
-    // Utility: generate a random seed
     function getRandomSeed() {
       return Math.floor(Math.random() * 1000000000);
     }
 
-    // Update status message in the UI
     function updateStatus(message) {
       document.getElementById('status').innerText = message;
     }
 
-    // Helper to get the API key with "Bearer " prepended.
     function getApiKey() {
       let key = document.getElementById('apiKey').value.trim();
       if (!key) return "";
-      if (!key.startsWith("Bearer ")) {
-        key = "Bearer " + key;
-      }
+      if (!key.startsWith("Bearer ")) key = "Bearer " + key;
       return key;
     }
 
-    // Generate a single image and display it
-    async function generateImage() {
+    async function generateBatch() {
       const apiKey = getApiKey();
       if (!apiKey) {
         updateStatus("Please enter your API key.");
@@ -180,142 +263,83 @@
       const stylePreset = document.getElementById('stylePreset').value;
       const safeMode = document.getElementById('safeMode').checked;
       const model = document.getElementById('model').value;
-      const height = parseInt(document.getElementById('height').value) || 512;
-      const width = parseInt(document.getElementById('width').value) || 512;
+      const aspectRatio = document.getElementById('aspectRatio').value;
+      const { width, height } = aspectRatios[aspectRatio];
       const steps = parseInt(document.getElementById('steps').value) || 30;
       const hideWatermark = document.getElementById('hideWatermark').checked;
-      const seed = getRandomSeed();
+      const batchCount = parseInt(document.getElementById('batchCount').value) || 1;
 
-      const payload = {
-        prompt: prompt,
-        style_preset: stylePreset,
-        safe_mode: safeMode,
-        model: model,
-        height: height,
-        width: width,
-        steps: steps,
-        seed: seed,
-        hide_watermark: hideWatermark
-      };
+      const imageDisplayArea = document.getElementById('imageDisplayArea');
+      imageDisplayArea.innerHTML = ''; // Clear previous images
+      generatedImages = []; // Reset image data
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.innerText = `Generating 0/${batchCount} images`;
+      document.getElementById('downloadAllBtn').disabled = true; // Disable download all button
 
-      updateStatus(`Generating image with seed: ${seed} ...`);
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            "Authorization": apiKey,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-          throw new Error("Request failed with status " + response.status);
-        }
-        const data = await response.json();
-        const imageB64 = data.images[0];
-        const dataUrl = "data:image/png;base64," + imageB64;
-        document.getElementById('imageDisplay').src = dataUrl;
-        updateStatus(`Image generated successfully with seed: ${seed}`);
-        document.getElementById('downloadBtn').disabled = false;
-        // Store the last generated image data URL for download
-        window.lastImageDataUrl = dataUrl;
-      } catch (error) {
-        updateStatus("Error: " + error.message);
-      }
-    }
-
-    // Trigger download of the last generated image
-    function downloadImage() {
-      if (!window.lastImageDataUrl) {
-        updateStatus("No image to download.");
-        return;
-      }
-      const a = document.createElement('a');
-      a.href = window.lastImageDataUrl;
-      a.download = `generated_image_${getRandomSeed()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    // Batch generate images, add them to a ZIP, and download the ZIP file
-    async function generateBatchImages() {
-      const apiKey = getApiKey();
-      if (!apiKey) {
-        updateStatus("Please enter your API key.");
-        return;
-      }
-      const prompt = document.getElementById('prompt').value;
-      const stylePreset = document.getElementById('stylePreset').value;
-      const safeMode = document.getElementById('safeMode').checked;
-      const model = document.getElementById('model').value;
-      const height = parseInt(document.getElementById('height').value) || 512;
-      const width = parseInt(document.getElementById('width').value) || 512;
-      const steps = parseInt(document.getElementById('steps').value) || 30;
-      const hideWatermark = document.getElementById('hideWatermark').checked;
-      const batchCount = parseInt(document.getElementById('batchCount').value) || 10;
-
-      // Create a new ZIP instance
-      const zip = new JSZip();
-
-      for (let i = 1; i <= batchCount; i++) {
+      for (let i = 0; i < batchCount; i++) {
         const seed = getRandomSeed();
         const payload = {
-          prompt: prompt,
-          style_preset: stylePreset,
-          safe_mode: safeMode,
-          model: model,
-          height: height,
-          width: width,
-          steps: steps,
-          seed: seed,
-          hide_watermark: hideWatermark
+          prompt, style_preset: stylePreset, safe_mode: safeMode, model,
+          height, width, steps, seed, hide_watermark: hideWatermark
         };
 
-        updateStatus(`Generating image ${i} of ${batchCount} with seed: ${seed}...`);
+        updateStatus(`Generating image ${i + 1} of ${batchCount} with seed: ${seed} ...`);
         try {
           const response = await fetch(API_URL, {
             method: 'POST',
-            headers: {
-              "Authorization": apiKey,
-              "Content-Type": "application/json"
-            },
+            headers: { "Authorization": apiKey, "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
-          if (!response.ok) {
-            throw new Error("Request failed with status " + response.status);
-          }
+          if (!response.ok) throw new Error("Request failed with status " + response.status);
           const data = await response.json();
           const imageB64 = data.images[0];
-          const filename = `generated_image_${i}_${seed}.png`;
-          // Add file to ZIP (indicating that the string is base64 encoded)
-          zip.file(filename, imageB64, { base64: true });
-          updateStatus(`Added image ${i} of ${batchCount} to ZIP.`);
-          // Optional delay between images (1 second)
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          const dataUrl = "data:image/png;base64," + imageB64;
+          generatedImages.push({ seed, dataUrl }); // Store image data for download
+
+          // Create image item with download button
+          const imageItem = document.createElement('div');
+          imageItem.className = 'image-item';
+          imageItem.innerHTML = `
+            <img src="${dataUrl}" alt="Generated Image" />
+            <button onclick="downloadImage(${i})">Download</button>
+          `;
+          imageDisplayArea.appendChild(imageItem);
+
+          progressContainer.innerText = `Generating ${i + 1}/${batchCount} images`;
         } catch (error) {
           updateStatus("Error: " + error.message);
           return;
         }
       }
+      updateStatus(`Batch generation complete: ${batchCount} images generated.`);
+      document.getElementById('downloadAllBtn').disabled = false; // Enable download all button
+    }
 
-      updateStatus("Generating ZIP file...");
-      // Generate the ZIP file as a blob and trigger its download
+    function downloadImage(index) {
+      const { dataUrl, seed } = generatedImages[index];
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `image_${seed}.png`;
+      a.click();
+    }
+
+    function downloadAllAsZip() {
+      const zip = new JSZip();
+      generatedImages.forEach((image, index) => {
+        const { dataUrl, seed } = image;
+        const base64 = dataUrl.split(',')[1];
+        zip.file(`image_${seed}.png`, base64, { base64: true });
+      });
       zip.generateAsync({ type: "blob" }).then(function (content) {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(content);
-        a.download = "generated_images.zip";
-        document.body.appendChild(a);
+        a.download = "images.zip";
         a.click();
-        document.body.removeChild(a);
-        updateStatus("Batch generation complete! ZIP file downloaded.");
       });
     }
 
-    // Attach event listeners to buttons
-    document.getElementById('generateBtn').addEventListener('click', generateImage);
-    document.getElementById('downloadBtn').addEventListener('click', downloadImage);
-    document.getElementById('batchBtn').addEventListener('click', generateBatchImages);
+    document.getElementById('batchBtn').addEventListener('click', generateBatch);
+    document.getElementById('downloadAllBtn').addEventListener('click', downloadAllAsZip);
   </script>
 </body>
 </html>
