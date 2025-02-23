@@ -99,7 +99,9 @@
     }
 
     .image-item img {
-      max-width: 100%;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
@@ -128,12 +130,59 @@
       font-size: 14px;
     }
 
+    .modal {
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.9);
+    }
+
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+    }
+
+    .close {
+      position: absolute;
+      top: 15px;
+      right: 35px;
+      color: #f1f1f1;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #bbb;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
     @media (max-width: 768px) {
       body { flex-direction: column; }
       .sidebar { width: 100%; box-shadow: none; }
       .main { flex: none; }
       .batch-group { flex-direction: column; gap: 8px; }
       .batch-group input, .batch-group button { width: 100%; }
+    }
+
+    /* New styles for paired controls */
+    .control-pair {
+      display: flex;
+      gap: 20px;
+    }
+
+    .control-pair > div {
+      flex: 1;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -144,14 +193,14 @@
     <h2>Image Generator</h2>
     <div class="control-group">
       <label for="apiKey">API Key</label>
-      <input type="text" id="apiKey" placeholder="Enter your API key" />
+      <input type="password" id="apiKey" placeholder="Enter your API key" />
     </div>
     <div class="control-group">
       <label for="prompt">Prompt</label>
       <textarea id="prompt" rows="4" placeholder="Describe your image"></textarea>
     </div>
     <div class="control-group">
-      <div class="select-pair">
+      <div class="control-pair">
         <div>
           <label for="stylePreset">Style Preset</label>
           <select id="stylePreset">
@@ -173,13 +222,15 @@
       </div>
     </div>
     <div class="control-group">
-      <div class="select-pair">
+      <div class="control-pair">
         <div>
           <label for="aspectRatio">Aspect Ratio</label>
           <select id="aspectRatio">
             <option value="square" selected>Square (1024×1024)</option>
             <option value="landscape">Landscape 3:2 (1264×868)</option>
             <option value="cinema">Cinema 16:9 (1280×720)</option>
+            <option value="tall">Tall 9:16 (720×1280)</option>
+            <option value="portrait">Portrait 2:3 (848×1264)</option>
           </select>
         </div>
         <div>
@@ -188,16 +239,18 @@
         </div>
       </div>
     </div>
- <div class="checkbox-group">
-  <div class="checkbox-item">
-    <input type="checkbox" id="safeMode" />
-    <label for="safeMode">Safe Mode</label>
-  </div>
-  <div class="checkbox-item">
-    <input type="checkbox" id="hideWatermark" checked />
-    <label for="hideWatermark">Hide Watermark</label>
-  </div>
-</div>
+    <div class="control-group">
+      <div class="control-pair">
+        <div class="checkbox-group">
+          <input type="checkbox" id="safeMode" />
+          <label for="safeMode">Safe Mode</label>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="hideWatermark" checked />
+          <label for="hideWatermark">Hide Watermark</label>
+        </div>
+      </div>
+    </div>
     <div class="control-group">
       <div class="batch-group">
         <label for="batchCount">Batch Count</label>
@@ -209,10 +262,14 @@
   </div>
   <div class="main">
     <div class="download-all-container">
-      <button id="downloadAllBtn" disabled>Download All as Zip</button>
+      <button id="downloadAllBtn" style="display: none;" disabled>Download All as Zip</button>
     </div>
     <div class="progress-container" id="progressContainer"></div>
     <div class="image-display-area" id="imageDisplayArea"></div>
+  </div>
+  <div id="modal" class="modal" style="display: none;">
+    <span class="close">×</span>
+    <img class="modal-content" id="modalImg">
   </div>
 
   <script>
@@ -220,7 +277,9 @@
     const aspectRatios = {
       square: { width: 1024, height: 1024 },
       landscape: { width: 1264, height: 868 },
-      cinema: { width: 1280, height: 720 }
+      cinema: { width: 1280, height: 720 },
+      tall: { width: 720, height: 1280 },
+      portrait: { width: 848, height: 1264 }
     };
     let generatedImages = []; // Store image data for download
 
@@ -274,7 +333,15 @@
       generatedImages = []; // Reset image data
       const progressContainer = document.getElementById('progressContainer');
       progressContainer.innerText = `Generating 0/${batchCount} images`;
-      document.getElementById('downloadAllBtn').disabled = true; // Disable download all button
+
+      // Show the download button when generation starts (still disabled)
+      const downloadAllBtn = document.getElementById('downloadAllBtn');
+      downloadAllBtn.style.display = 'block';
+      downloadAllBtn.disabled = true;
+
+      // Set grid layout based on batch count
+      const k = Math.ceil(Math.sqrt(batchCount));
+      imageDisplayArea.style.gridTemplateColumns = `repeat(${k}, 1fr)`;
 
       for (let i = 0; i < batchCount; i++) {
         const seed = getRandomSeed();
@@ -296,13 +363,24 @@
           const dataUrl = "data:image/png;base64," + imageB64;
           generatedImages.push({ seed, dataUrl }); // Store image data for download
 
-          // Create image item with download button
+          // Create image item with download button and zoom functionality
           const imageItem = document.createElement('div');
           imageItem.className = 'image-item';
-          imageItem.innerHTML = `
-            <img src="${dataUrl}" alt="Generated Image" />
-            <button onclick="downloadImage(${i})">Download</button>
-          `;
+
+          const img = document.createElement('img');
+          img.src = dataUrl;
+          img.alt = 'Generated Image';
+          img.addEventListener('click', () => {
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('modalImg').src = dataUrl;
+          });
+
+          const downloadBtn = document.createElement('button');
+          downloadBtn.innerText = 'Download';
+          downloadBtn.addEventListener('click', () => downloadImage(i));
+
+          imageItem.appendChild(img);
+          imageItem.appendChild(downloadBtn);
           imageDisplayArea.appendChild(imageItem);
 
           progressContainer.innerText = `Generating ${i + 1}/${batchCount} images`;
@@ -312,7 +390,7 @@
         }
       }
       updateStatus(`Batch generation complete: ${batchCount} images generated.`);
-      document.getElementById('downloadAllBtn').disabled = false; // Enable download all button
+      downloadAllBtn.disabled = false; // Enable download button when finished
     }
 
     function downloadImage(index) {
@@ -337,6 +415,18 @@
         a.click();
       });
     }
+
+    // Event listeners for modal
+    const modal = document.getElementById('modal');
+    const closeBtn = document.querySelector('.close');
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
 
     document.getElementById('batchBtn').addEventListener('click', generateBatch);
     document.getElementById('downloadAllBtn').addEventListener('click', downloadAllAsZip);
