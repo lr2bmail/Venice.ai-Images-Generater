@@ -12,11 +12,13 @@
       padding: 0;
       display: flex;
       height: 100vh;
+      background-color: #eaeaea;
     }
     .sidebar {
-      width: 300px;
+      width: 320px;
       padding: 20px;
-      background-color: #f4f4f4;
+      background-color: #ffffff;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
       box-sizing: border-box;
       overflow-y: auto;
     }
@@ -32,15 +34,23 @@
     input, select, textarea, button {
       width: 100%;
       padding: 8px;
-      margin: 4px 0;
+      margin: 8px 0;
       box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
     button {
-      cursor: pointer;
+      background-color: #007BFF;
+      color: #ffffff;
+      border: none;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #0056b3;
     }
     #status {
       margin-top: 10px;
-      color: blue;
+      color: #007BFF;
       font-size: 0.9em;
     }
     #imageDisplay {
@@ -48,6 +58,11 @@
       max-height: 80vh;
       display: block;
       margin-top: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    label {
+      font-weight: bold;
     }
   </style>
   <!-- Include JSZip from CDN -->
@@ -60,7 +75,7 @@
     <input type="text" id="apiKey" placeholder="Enter your API key" />
 
     <label for="prompt">Prompt:</label>
-    <textarea id="prompt" rows="4">a woman walking in the street</textarea>
+    <textarea id="prompt" rows="4" placeholder="Enter your prompt here">a woman walking in the street</textarea>
 
     <label for="stylePreset">Style Preset:</label>
     <select id="stylePreset">
@@ -96,8 +111,11 @@
     <label for="hideWatermark">Hide Watermark:</label>
     <input type="checkbox" id="hideWatermark" checked />
 
+    <label for="batchCount">Batch Count:</label>
+    <input type="number" id="batchCount" value="10" min="1" />
+
     <button id="generateBtn">Generate Image</button>
-    <button id="batchBtn">Generate 10 Images and Save</button>
+    <button id="batchBtn">Generate Batch Images and Save</button>
     <button id="downloadBtn" disabled>Download Last Image</button>
 
     <div id="status"></div>
@@ -117,14 +135,13 @@
       if (savedApiKey) {
         document.getElementById('apiKey').value = savedApiKey;
       }
-      // You can also load other fields if desired.
       const savedPrompt = localStorage.getItem("prompt");
       if (savedPrompt) {
         document.getElementById('prompt').value = savedPrompt;
       }
     });
 
-    // Save API key (and prompt) to localStorage when they change.
+    // Save API key and prompt to localStorage when they change.
     document.getElementById('apiKey').addEventListener('input', function() {
       localStorage.setItem("apiKey", this.value);
     });
@@ -221,7 +238,7 @@
       document.body.removeChild(a);
     }
 
-    // Batch generate 10 images, add them to a ZIP, and download the ZIP file
+    // Batch generate images, add them to a ZIP, and download the ZIP file
     async function generateBatchImages() {
       const apiKey = getApiKey();
       if (!apiKey) {
@@ -236,11 +253,12 @@
       const width = parseInt(document.getElementById('width').value) || 512;
       const steps = parseInt(document.getElementById('steps').value) || 30;
       const hideWatermark = document.getElementById('hideWatermark').checked;
+      const batchCount = parseInt(document.getElementById('batchCount').value) || 10;
 
       // Create a new ZIP instance
       const zip = new JSZip();
 
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= batchCount; i++) {
         const seed = getRandomSeed();
         const payload = {
           prompt: prompt,
@@ -254,7 +272,7 @@
           hide_watermark: hideWatermark
         };
 
-        updateStatus(`Generating image ${i} of 10 with seed: ${seed}...`);
+        updateStatus(`Generating image ${i} of ${batchCount} with seed: ${seed}...`);
         try {
           const response = await fetch(API_URL, {
             method: 'POST',
@@ -272,7 +290,7 @@
           const filename = `generated_image_${i}_${seed}.png`;
           // Add file to ZIP (indicating that the string is base64 encoded)
           zip.file(filename, imageB64, { base64: true });
-          updateStatus(`Added image ${i} of 10 to ZIP.`);
+          updateStatus(`Added image ${i} of ${batchCount} to ZIP.`);
           // Optional delay between images (1 second)
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
