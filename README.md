@@ -33,3 +33,18 @@ Sends POST requests from your browser to the Venice.ai API. Uses JSZip for batch
    ```bash
    git clone https://github.com/lr2bmail/Venice.ai-Images-Generator.git
    cd Venice.ai-Images-Generator
+   
+2. Open index.html in a browser or visit the live demo.
+
+### Usage
+
+    - Enter your API key (auto-prefixed with "Bearer ").
+    - Set your prompt, negative prompt, and other parameters.
+    - Click "Generate Images" to create and view results.
+
+### Disclaimer
+
+Unofficial tool, not affiliated with Venice.ai. Use at your own risk.
+License
+
+MIT License - see LICENSE for details.
