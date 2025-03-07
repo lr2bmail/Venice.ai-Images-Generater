@@ -4,293 +4,264 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Venice.ai Image Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
       font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: #f0f2f5;
       margin: 0;
-      padding: 0;
-      display: flex;
-      height: 100vh;
-      background-color: #f5f7fa;
-      color: #333;
     }
-
     .sidebar {
-      width: 360px;
-      padding: 24px;
       background: linear-gradient(145deg, #ffffff, #f8fafc);
-      box-shadow: 4px 0 15px rgba(0,0,0,0.06);
+      box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+      height: 100vh;
+      padding: 2rem;
       overflow-y: auto;
+      border-right: 1px solid #e9ecef;
     }
-
-    .main {
-      flex: 1;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      background: #ffffff;
+    .sidebar h2 {
+      color: #1a73e8;
+      font-weight: 600;
+      margin-bottom: 2rem;
     }
-
-    .control-group {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
+    .sidebar .form-label {
       font-weight: 500;
-      color: #444;
+      color: #495057;
     }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      background-color: #1a73e8;
-      color: white;
-      font-size: 15px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #1557b0;
-    }
-
-    .checkbox-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .batch-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .batch-group label,
-    .batch-group input,
-    .batch-group button {
-      flex: 1;
-    }
-
     .image-display-area {
-      margin-top: 20px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
+      padding: 1rem;
     }
-
     .image-item {
-      position: relative;
-      text-align: center;
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
     }
-
+    .image-item:hover {
+      transform: translateY(-5px);
+    }
     .image-item img {
       width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1050;
+    }
+    .modal-content {
+      max-width: 95vw;
+      max-height: 85vh;
+      width: auto;
       height: auto;
       object-fit: contain;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-
-    .image-item button {
-      margin-top: 10px;
-      padding: 8px;
-      font-size: 14px;
-    }
-
-    .progress-container {
-      margin-bottom: 10px;
-      text-align: center;
-      font-size: 14px;
-      color: #1a73e8;
-    }
-
-    .download-all-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 10px;
-    }
-
-    .download-all-container button {
-      padding: 8px 16px;
-      font-size: 14px;
-    }
-
-    .modal {
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.9);
-    }
-
-    .modal-content {
-      margin: auto;
-      display: block;
-      max-width: 90vw;
-      max-height: 90vh;
-      width: auto;
-      height: auto;
-    }
-
     .close {
       position: absolute;
-      top: 15px;
+      top: 25px;
       right: 35px;
-      color: #f1f1f1;
+      color: #fff;
       font-size: 40px;
       font-weight: bold;
       cursor: pointer;
+      text-shadow: 0 0 5px rgba(0,0,0,0.5);
     }
-
-    .close:hover,
-    .close:focus {
-      color: #bbb;
-      text-decoration: none;
+    .close:hover {
+      color: #ddd;
+    }
+    .spinner-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .btn-primary {
+      background-color: #1a73e8;
+      border-color: #1a73e8;
+    }
+    .btn-primary:hover {
+      background-color: #1557b0;
+      border-color: #1557b0;
+    }
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+    /* Lightbox navigation styles */
+    .lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #fff;
+      font-size: 40px;
       cursor: pointer;
+      padding: 10px;
+      user-select: none;
     }
-
-    @media (max-width: 768px) {
-      body { flex-direction: column; }
-      .sidebar { width: 100%; box-shadow: none; }
-      .main { flex: none; }
-      .batch-group { flex-direction: column; gap: 8px; }
-      .batch-group input, .batch-group button { width: 100%; }
+    .lightbox-prev {
+      left: 20px;
     }
-
-    /* New styles for paired controls */
-    .control-pair {
-      display: flex;
-      gap: 20px;
+    .lightbox-next {
+      right: 20px;
     }
-
-    .control-pair > div {
-      flex: 1;
+    .lightbox-nav:hover {
+      color: #ddd;
+    }
+    .lightbox-counter {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 16px;
+      background: rgba(0,0,0,0.7);
+      padding: 5px 15px;
+      border-radius: 15px;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="sidebar">
-    <h2>Image Generator <small><a href="https://github.com/lr2bmail/Venice.ai-Images-Generater">GitHub</a></small></h2>
-    <div class="control-group">
-      <label for="apiKey">API Key</label>
-      <input type="password" id="apiKey" placeholder="Enter your API key" />
-    </div>
-    <div class="control-group">
-      <label for="prompt">Prompt</label>
-      <textarea id="prompt" rows="4" placeholder="Describe your image"></textarea>
-    </div>
-    <div class="control-group">
-      <div class="control-pair">
-        <div>
-          <label for="stylePreset">Style Preset</label>
-          <select id="stylePreset">
-            <option value="3D Model">3D Model</option>
-            <option value="Analog Film">Analog Film</option>
-            <option value="Anime">Anime</option>
-            <option value="Cinematic" selected>Cinematic</option>
-            <option value="Comic Book">Comic Book</option>
-          </select>
+  <div class="container-fluid h-100">
+    <div class="row h-100">
+      <div class="col-md-4 sidebar">
+        <h2>Image Generator <small><a href="https://github.com/lr2bmail/Venice.ai-Images-Generator" class="text-muted text-decoration-none">GitHub</a></small></h2>
+        <div class="mb-4">
+          <label for="apiKey" class="form-label">API Key</label>
+          <input type="password" class="form-control" id="apiKey" placeholder="Enter your API key" data-bs-toggle="tooltip" title="Your Venice.ai API key">
         </div>
-        <div>
-          <label for="model">Model</label>
-          <select id="model">
-            <option value="flux-dev-uncensored" selected>Flux Dev Uncensored</option>
-            <option value="flux-dev">Flux Dev</option>
-            <option value="fluently-xl">Fluently XL</option>
-                 <option value="pony-realism">Pony Realism</option>
-                 <option value="lustify-sdxl">Lustify Sdxl</option>
-                 <option value="stable-diffusion-3.5">stable-diffusion-3.5</option>
-          </select>
+        <div class="mb-4">
+          <label for="prompt" class="form-label">Positive Prompt</label>
+          <textarea class="form-control" id="prompt" rows="3" placeholder="What you want to see" data-bs-toggle="tooltip" title="Describe the desired image content"></textarea>
+        </div>
+        <div class="mb-4">
+          <label for="negativePrompt" class="form-label">Negative Prompt</label>
+          <textarea class="form-control" id="negativePrompt" rows="3" placeholder="What you don't want to see" data-bs-toggle="tooltip" title="Elements to exclude from the image"></textarea>
+        </div>
+        <div class="row mb-4">
+          <div class="col">
+            <label for="stylePreset" class="form-label">Style Preset</label>
+            <select class="form-select" id="stylePreset">
+              <option value="3D Model">3D Model</option>
+              <option value="Analog Film" selected>Analog Film</option>
+              <option value="Anime">Anime</option>
+              <option value="Cinematic">Cinematic</option>
+              <option value="Comic Book">Comic Book</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="model" class="form-label">Model</label>
+            <select class="form-select" id="model">
+              <option value="flux-dev-uncensored">Flux Dev Uncensored</option>
+              <option value="flux-dev" selected>Flux Dev</option>
+              <option value="fluently-xl">Fluently XL</option>
+              <option value="pony-realism">Pony Realism</option>
+              <option value="lustify-sdxl">Lustify SDXL</option>
+              <option value="stable-diffusion-3.5">Stable Diffusion 3.5</option>
+            </select>
+          </div>
+        </div>
+        <div class="row mb-4">
+          <div class="col">
+            <label for="aspectRatio" class="form-label">Aspect Ratio</label>
+            <select class="form-select" id="aspectRatio">
+              <option value="square" selected>Square (1024×1024)</option>
+              <option value="landscape">Landscape 3:2 (1264×864)</option>
+              <option value="cinema">Cinema 16:9 (1280×720)</option>
+              <option value="tall">Tall 9:16 (720×1280)</option>
+              <option value="portrait">Portrait 2:3 (848×1264)</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="steps" class="form-label">Steps</label>
+            <input type="number" class="form-control" id="steps" value="30" min="10" max="100" data-bs-toggle="tooltip" title="Higher steps = better quality">
+          </div>
+        </div>
+        <div class="mb-4">
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="safeMode">
+            <label class="form-check-label" for="safeMode">Safe Mode</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="hideWatermark" checked>
+            <label class="form-check-label" for="hideWatermark">Hide Watermark</label>
+          </div>
+        </div>
+        <div class="row mb-4">
+          <div class="col">
+            <label for="batchCount" class="form-label">Batch Count</label>
+            <input type="number" class="form-control" id="batchCount" value="1" min="1" max="50" data-bs-toggle="tooltip" title="Number of images to generate">
+          </div>
+          <div class="col">
+            <label for="concurrentRequests" class="form-label">Concurrent Requests</label>
+            <input type="number" class="form-control" id="concurrentRequests" value="1" min="1" max="10" data-bs-toggle="tooltip" title="Simultaneous generations">
+          </div>
+        </div>
+        <button id="batchBtn" class="btn btn-primary w-100 mb-3">Generate Images</button>
+        <div id="status" class="text-muted small">Ready to generate</div>
+        <div id="errorAlert" class="alert alert-danger d-none mt-3" role="alert"></div>
+      </div>
+      <div class="col-md-8 p-4 position-relative">
+        <div class="d-flex justify-content-end mb-3">
+          <button id="downloadAllBtn" class="btn btn-secondary" style="display: none;" disabled>Download All (ZIP)</button>
+        </div>
+        <div class="progress-container mb-3 text-center text-primary" id="progressContainer"></div>
+        <div class="image-display-area" id="imageDisplayArea"></div>
+        <div class="spinner-container d-none" id="loadingSpinner">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
         </div>
       </div>
     </div>
-    <div class="control-group">
-      <div class="control-pair">
-        <div>
-          <label for="aspectRatio">Aspect Ratio</label>
-          <select id="aspectRatio">
-            <option value="square" selected>Square (1024×1024)</option>
-            <option value="landscape">Landscape 3:2 (1264×868)</option>
-            <option value="cinema">Cinema 16:9 (1280×720)</option>
-            <option value="tall">Tall 9:16 (720×1280)</option>
-            <option value="portrait">Portrait 2:3 (848×1264)</option>
-          </select>
-        </div>
-        <div>
-          <label for="steps">Steps</label>
-          <input type="number" id="steps" value="30" min="10" max="100" />
-        </div>
-      </div>
-    </div>
-    <div class="control-group">
-      <div class="control-pair">
-        <div class="checkbox-group">
-          <input type="checkbox" id="safeMode" />
-          <label for="safeMode">Safe Mode</label>
-        </div>
-        <div class="checkbox-group">
-          <input type="checkbox" id="hideWatermark" checked />
-          <label for="hideWatermark">Hide Watermark</label>
-        </div>
-      </div>
-    </div>
-    <div class="control-group">
-      <div class="batch-group">
-        <label for="batchCount">Batch Count</label>
-        <input type="number" id="batchCount" value="1" min="1" max="50" />
-        <button id="batchBtn">Generate Batch</button>
-      </div>
-    </div>
-    <div id="status">Ready to generate</div>
-  </div>
-  <div class="main">
-    <div class="download-all-container">
-      <button id="downloadAllBtn" style="display: none;" disabled>Download All as Zip</button>
-    </div>
-    <div class="progress-container" id="progressContainer"></div>
-    <div class="image-display-area" id="imageDisplayArea"></div>
   </div>
   <div id="modal" class="modal" style="display: none;">
     <span class="close">×</span>
+    <span class="lightbox-nav lightbox-prev" id="lightboxPrev">&#10094;</span>
     <img class="modal-content" id="modalImg">
+    <span class="lightbox-nav lightbox-next" id="lightboxNext">&#10095;</span>
+    <div class="lightbox-counter" id="lightboxCounter"></div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const API_URL = "https://api.venice.ai/api/v1/image/generate";
     const aspectRatios = {
       square: { width: 1024, height: 1024 },
-      landscape: { width: 1264, height: 868 },
+      landscape: { width: 1264, height: 864 },
       cinema: { width: 1280, height: 720 },
       tall: { width: 720, height: 1280 },
       portrait: { width: 848, height: 1264 }
     };
-    let generatedImages = []; // Store image data for download
+    let generatedImages = [];
+    let currentImageIndex = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    });
 
     window.addEventListener('load', () => {
       const savedApiKey = localStorage.getItem("apiKey");
       if (savedApiKey) document.getElementById('apiKey').value = savedApiKey;
       const savedPrompt = localStorage.getItem("prompt");
       if (savedPrompt) document.getElementById('prompt').value = savedPrompt;
+      const savedNegativePrompt = localStorage.getItem("negativePrompt");
+      if (savedNegativePrompt) document.getElementById('negativePrompt').value = savedNegativePrompt;
     });
 
     document.getElementById('apiKey').addEventListener('input', function() {
@@ -298,6 +269,9 @@
     });
     document.getElementById('prompt').addEventListener('input', function() {
       localStorage.setItem("prompt", this.value);
+    });
+    document.getElementById('negativePrompt').addEventListener('input', function() {
+      localStorage.setItem("negativePrompt", this.value);
     });
 
     function getRandomSeed() {
@@ -308,6 +282,17 @@
       document.getElementById('status').innerText = message;
     }
 
+    function showError(message) {
+      const errorAlert = document.getElementById('errorAlert');
+      errorAlert.textContent = message;
+      errorAlert.classList.remove('d-none');
+      setTimeout(() => errorAlert.classList.add('d-none'), 5000);
+    }
+
+    function toggleLoadingSpinner(show) {
+      document.getElementById('loadingSpinner').classList.toggle('d-none', !show);
+    }
+
     function getApiKey() {
       let key = document.getElementById('apiKey').value.trim();
       if (!key) return "";
@@ -315,13 +300,28 @@
       return key;
     }
 
+    async function generateImage(payload, index) {
+      const apiKey = getApiKey();
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { "Authorization": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(`Request failed with status ${response.status}: ${await response.text()}`);
+      const data = await response.json();
+      return { index, imageB64: data.images[0], seed: payload.seed };
+    }
+
     async function generateBatch() {
       const apiKey = getApiKey();
       if (!apiKey) {
-        updateStatus("Please enter your API key.");
+        showError("Please enter your API key.");
         return;
       }
+
+      toggleLoadingSpinner(true);
       const prompt = document.getElementById('prompt').value;
+      const negativePrompt = document.getElementById('negativePrompt').value;
       const stylePreset = document.getElementById('stylePreset').value;
       const safeMode = document.getElementById('safeMode').checked;
       const model = document.getElementById('model').value;
@@ -330,70 +330,115 @@
       const steps = parseInt(document.getElementById('steps').value) || 30;
       const hideWatermark = document.getElementById('hideWatermark').checked;
       const batchCount = parseInt(document.getElementById('batchCount').value) || 1;
+      const concurrentRequests = Math.min(
+        parseInt(document.getElementById('concurrentRequests').value) || 1,
+        10
+      );
 
       const imageDisplayArea = document.getElementById('imageDisplayArea');
-      imageDisplayArea.innerHTML = ''; // Clear previous images
-      generatedImages = []; // Reset image data
+      imageDisplayArea.innerHTML = '';
+      generatedImages = [];
       const progressContainer = document.getElementById('progressContainer');
       progressContainer.innerText = `Generating 0/${batchCount} images`;
 
-      // Show the download button when generation starts (still disabled)
       const downloadAllBtn = document.getElementById('downloadAllBtn');
       downloadAllBtn.style.display = 'block';
       downloadAllBtn.disabled = true;
 
-      // Set grid layout based on batch count
       const k = Math.ceil(Math.sqrt(batchCount));
       imageDisplayArea.style.gridTemplateColumns = `repeat(${k}, 1fr)`;
 
-      for (let i = 0; i < batchCount; i++) {
-        const seed = getRandomSeed();
-        const payload = {
-          prompt, style_preset: stylePreset, safe_mode: safeMode, model,
-          height, width, steps, seed, hide_watermark: hideWatermark
-        };
+      const promises = [];
+      let completed = 0;
 
-        updateStatus(`Generating image ${i + 1} of ${batchCount} with seed: ${seed} ...`);
-        try {
-          const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { "Authorization": apiKey, "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-          if (!response.ok) throw new Error("Request failed with status " + response.status);
-          const data = await response.json();
-          const imageB64 = data.images[0];
-          const dataUrl = "data:image/png;base64," + imageB64;
-          generatedImages.push({ seed, dataUrl }); // Store image data for download
+      try {
+        for (let i = 0; i < batchCount; i++) {
+          const seed = getRandomSeed();
+          const payload = {
+            prompt,
+            negative_prompt: negativePrompt,
+            style_preset: stylePreset,
+            safe_mode: safeMode,
+            model,
+            height,
+            width,
+            steps,
+            seed,
+            hide_watermark: hideWatermark
+          };
 
-          // Create image item with download button and zoom functionality
-          const imageItem = document.createElement('div');
-          imageItem.className = 'image-item';
+          promises.push(generateImage(payload, i).then(result => {
+            completed++;
+            updateStatus(`Generating image ${completed} of ${batchCount} (Seed: ${result.seed})`);
+            progressContainer.innerText = `Generated ${completed}/${batchCount} images`;
 
-          const img = document.createElement('img');
-          img.src = dataUrl;
-          img.alt = 'Generated Image';
-          img.addEventListener('click', () => {
-            document.getElementById('modal').style.display = 'block';
-            document.getElementById('modalImg').src = dataUrl;
-          });
+            const dataUrl = "data:image/png;base64," + result.imageB64;
+            generatedImages[result.index] = { seed: result.seed, dataUrl };
 
-          const downloadBtn = document.createElement('button');
-          downloadBtn.innerText = 'Download';
-          downloadBtn.addEventListener('click', () => downloadImage(i));
+            const imageItem = document.createElement('div');
+            imageItem.className = 'image-item';
 
-          imageItem.appendChild(img);
-          imageItem.appendChild(downloadBtn);
-          imageDisplayArea.appendChild(imageItem);
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.alt = `Generated Image (Seed: ${result.seed})`;
+            img.dataset.index = result.index;
+            img.addEventListener('click', () => openLightbox(parseInt(img.dataset.index)));
 
-          progressContainer.innerText = `Generating ${i + 1}/${batchCount} images`;
-        } catch (error) {
-          updateStatus("Error: " + error.message);
-          return;
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'btn btn-primary btn-sm mt-2 w-100';
+            downloadBtn.innerText = 'Download';
+            downloadBtn.addEventListener('click', () => downloadImage(result.index));
+
+            imageItem.appendChild(img);
+            imageItem.appendChild(downloadBtn);
+            imageDisplayArea.appendChild(imageItem);
+
+            return result;
+          }));
+
+          if (promises.length >= concurrentRequests || i === batchCount - 1) {
+            await Promise.all(promises.splice(0, concurrentRequests));
+          }
         }
+
+        updateStatus(`Generation complete: ${batchCount} images created`);
+        downloadAllBtn.disabled = false;
+      } catch (error) {
+        showError("Error: " + error.message);
+      } finally {
+        toggleLoadingSpinner(false);
       }
-      updateStatus(`Batch generation complete: ${batchCount} images generated.`);
-      downloadAllBtn.disabled = false; // Enable download button when finished
+    }
+
+    function openLightbox(index) {
+      if (generatedImages.length === 0) return;
+      currentImageIndex = index;
+      const modal = document.getElementById('modal');
+      const modalImg = document.getElementById('modalImg');
+      const counter = document.getElementById('lightboxCounter');
+
+      modalImg.src = generatedImages[currentImageIndex].dataUrl;
+      counter.textContent = `${currentImageIndex + 1} / ${generatedImages.length}`;
+      modal.style.display = 'flex';
+    }
+
+    function showNextImage() {
+      if (generatedImages.length === 0) return;
+      currentImageIndex = (currentImageIndex + 1) % generatedImages.length;
+      updateLightbox();
+    }
+
+    function showPrevImage() {
+      if (generatedImages.length === 0) return;
+      currentImageIndex = (currentImageIndex - 1 + generatedImages.length) % generatedImages.length;
+      updateLightbox();
+    }
+
+    function updateLightbox() {
+      const modalImg = document.getElementById('modalImg');
+      const counter = document.getElementById('lightboxCounter');
+      modalImg.src = generatedImages[currentImageIndex].dataUrl;
+      counter.textContent = `${currentImageIndex + 1} / ${generatedImages.length}`;
     }
 
     function downloadImage(index) {
@@ -414,20 +459,29 @@
       zip.generateAsync({ type: "blob" }).then(function (content) {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(content);
-        a.download = "images.zip";
+        a.download = "generated_images.zip";
         a.click();
       });
     }
 
-    // Event listeners for modal
     const modal = document.getElementById('modal');
     const closeBtn = document.querySelector('.close');
-    closeBtn.addEventListener('click', () => {
-      modal.style.display = 'none';
-    });
+    const prevBtn = document.getElementById('lightboxPrev');
+    const nextBtn = document.getElementById('lightboxNext');
+
+    closeBtn.addEventListener('click', () => modal.style.display = 'none');
+    prevBtn.addEventListener('click', showPrevImage);
+    nextBtn.addEventListener('click', showNextImage);
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.style.display = 'none';
+      if (e.target === modal) modal.style.display = 'none';
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (modal.style.display === 'flex') {
+        if (e.key === 'ArrowLeft') showPrevImage();
+        if (e.key === 'ArrowRight') showNextImage();
+        if (e.key === 'Escape') modal.style.display = 'none';
       }
     });
 
