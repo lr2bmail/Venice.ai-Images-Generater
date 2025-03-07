@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Venice.ai Image Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      background-color: #f5f7fa;
+    }
+    .sidebar {
+      background: linear-gradient(145deg, #ffffff, #f8fafc);
+      box-shadow: 4px 0 15px rgba(0,0,0,0.06);
+      overflow-y: auto;
+      height: 100vh;
+    }
+    .image-display-area {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .image-item img {
+      width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1050;
+    }
+    .modal-content {
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      border: none;
+    }
+    .close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      text-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    .close:hover {
+      color: #ccc;
+    }
+    .spinner-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container-fluid h-100">
+    <div class="row h-100">
+      <div class="col-md-4 sidebar p-4">
+        <h2>Image Generator <small><a href="https://github.com/lr2bmail/Venice.ai-Images-Generator">GitHub</a></small></h2>
+        <div class="mb-3">
+          <label for="apiKey" class="form-label">API Key</label>
+          <input type="password" class="form-control" id="apiKey" placeholder="Enter your API key" data-bs-toggle="tooltip" title="Get this from your Venice.ai account">
+        </div>
+        <div class="mb-3">
+          <label for="prompt" class="form-label">Prompt</label>
+          <textarea class="form-control" id="prompt" rows="4" placeholder="Describe your image" data-bs-toggle="tooltip" title="Describe what you want to generate"></textarea>
+        </div>
+        <div class="row mb-3">
+          <div class="col">
+            <label for="stylePreset" class="form-label">Style Preset</label>
+            <select class="form-select" id="stylePreset">
+              <option value="3D Model">3D Model</option>
+              <option value="Analog Film" selected>Analog Film</option>
+              <option value="Anime">Anime</option>
+              <option value="Cinematic">Cinematic</option>
+              <option value="Comic Book">Comic Book</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="model" class="form-label">Model</label>
+            <select class="form-select" id="model">
+              <option value="flux-dev-uncensored">Flux Dev Uncensored</option>
+              <option value="flux-dev" selected>Flux Dev</option>
+              <option value="fluently-xl">Fluently XL</option>
+              <option value="pony-realism">Pony Realism</option>
+              <option value="lustify-sdxl">Lustify Sdxl</option>
+              <option value="stable-diffusion-3.5">stable-diffusion-3.5</option>
+            </select>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col">
+            <label for="aspectRatio" class="form-label">Aspect Ratio</label>
+            <select class="form-select" id="aspectRatio">
+              <option value="square" selected>Square (1024×1024)</option>
+              <option value="landscape">Landscape 3:2 (1264×864)</option>
+              <option value="cinema">Cinema 16:9 (1280×720)</option>
+              <option value="tall">Tall 9:16 (720×1280)</option>
+              <option value="portrait">Portrait 2:3 (848×1264)</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="steps" class="form-label">Steps</label>
+            <input type="number" class="form-control" id="steps" value="30" min="10" max="100" data-bs-toggle="tooltip" title="Higher steps = better quality, slower generation">
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="safeMode">
+            <label class="form-check-label" for="safeMode">Safe Mode</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="hideWatermark" checked>
+            <label class="form-check-label" for="hideWatermark">Hide Watermark</label>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col">
+            <label for="batchCount" class="form-label">Batch Count</label>
+            <input type="number" class="form-control" id="batchCount" value="1" min="1" max="50" data-bs-toggle="tooltip" title="Number of images to generate">
+          </div>
+          <div class="col">
+            <label for="concurrentRequests" class="form-label">Concurrent Requests</label>
+            <input type="number" class="form-control" id="concurrentRequests" value="1" min="1" max="10" data-bs-toggle="tooltip" title="Number of simultaneous requests">
+          </div>
+        </div>
+        <button id="batchBtn" class="btn btn-primary w-100 mb-3">Generate Batch</button>
+        <div id="status" class="text-muted">Ready to generate</div>
+        <div id="errorAlert" class="alert alert-danger d-none" role="alert"></div>
+      </div>
+      <div class="col-md-8 p-4 position-relative">
+        <div class="d-flex justify-content-end mb-3">
+          <button id="downloadAllBtn" class="btn btn-secondary" style="display: none;" disabled>Download All as Zip</button>
+        </div>
+        <div class="progress-container mb-3 text-center text-primary" id="progressContainer"></div>
+        <div class="image-display-area" id="imageDisplayArea"></div>
+        <div class="spinner-container d-none" id="loadingSpinner">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="modal" class="modal" style="display: none;">
+    <span class="close">×</span>
+    <img class="modal-content" id="modalImg">
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_URL = "https://api.venice.ai/api/v1/image/generate";
+    const aspectRatios = {
+      square: { width: 1024, height: 1024 },
+      landscape: { width: 1264, height: 864 },
+      cinema: { width: 1280, height: 720 },
+      tall: { width: 720, height: 1280 },
+      portrait: { width: 848, height: 1264 }
+    };
+    let generatedImages = [];
+
+    // Initialize Bootstrap tooltips
+    document.addEventListener('DOMContentLoaded', () => {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    });
+
+    window.addEventListener('load', () => {
+      const savedApiKey = localStorage.getItem("apiKey");
+      if (savedApiKey) document.getElementById('apiKey').value = savedApiKey;
+      const savedPrompt = localStorage.getItem("prompt");
+      if (savedPrompt) document.getElementById('prompt').value = savedPrompt;
+    });
+
+    document.getElementById('apiKey').addEventListener('input', function() {
+      localStorage.setItem("apiKey", this.value);
+    });
+    document.getElementById('prompt').addEventListener('input', function() {
+      localStorage.setItem("prompt", this.value);
+    });
+
+    function getRandomSeed() {
+      return Math.floor(Math.random() * 1000000000);
+    }
+
+    function updateStatus(message) {
+      document.getElementById('status').innerText = message;
+    }
+
+    function showError(message) {
+      const errorAlert = document.getElementById('errorAlert');
+      errorAlert.textContent = message;
+      errorAlert.classList.remove('d-none');
+      setTimeout(() => errorAlert.classList.add('d-none'), 5000);
+    }
+
+    function toggleLoadingSpinner(show) {
+      document.getElementById('loadingSpinner').classList.toggle('d-none', !show);
+    }
+
+    function getApiKey() {
+      let key = document.getElementById('apiKey').value.trim();
+      if (!key) return "";
+      if (!key.startsWith("Bearer ")) key = "Bearer " + key;
+      return key;
+    }
+
+    async function generateImage(payload, index) {
+      const apiKey = getApiKey();
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { "Authorization": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error("Request failed with status " + response.status);
+      const data = await response.json();
+      return { index, imageB64: data.images[0], seed: payload.seed };
+    }
+
+    async function generateBatch() {
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        showError("Please enter your API key.");
+        return;
+      }
+
+      toggleLoadingSpinner(true);
+      const prompt = document.getElementById('prompt').value;
+      const stylePreset = document.getElementById('stylePreset').value;
+      const safeMode = document.getElementById('safeMode').checked;
+      const model = document.getElementById('model').value;
+      const aspectRatio = document.getElementById('aspectRatio').value;
+      const { width, height } = aspectRatios[aspectRatio];
+      const steps = parseInt(document.getElementById('steps').value) || 30;
+      const hideWatermark = document.getElementById('hideWatermark').checked;
+      const batchCount = parseInt(document.getElementById('batchCount').value) || 1;
+      const concurrentRequests = Math.min(
+        parseInt(document.getElementById('concurrentRequests').value) || 1,
+        10
+      );
+
+      const imageDisplayArea = document.getElementById('imageDisplayArea');
+      imageDisplayArea.innerHTML = '';
+      generatedImages = [];
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.innerText = `Generating 0/${batchCount} images`;
+
+      const downloadAllBtn = document.getElementById('downloadAllBtn');
+      downloadAllBtn.style.display = 'block';
+      downloadAllBtn.disabled = true;
+
+      const k = Math.ceil(Math.sqrt(batchCount));
+      imageDisplayArea.style.gridTemplateColumns = `repeat(${k}, 1fr)`;
+
+      const promises = [];
+      let completed = 0;
+
+      try {
+        for (let i = 0; i < batchCount; i++) {
+          const seed = getRandomSeed();
+          const payload = {
+            prompt, style_preset: stylePreset, safe_mode: safeMode, model,
+            height, width, steps, seed, hide_watermark: hideWatermark
+          };
+
+          promises.push(generateImage(payload, i).then(result => {
+            completed++;
+            updateStatus(`Generating image ${completed} of ${batchCount} with seed: ${result.seed} ...`);
+            progressContainer.innerText = `Generating ${completed}/${batchCount} images`;
+
+            const dataUrl = "data:image/png;base64," + result.imageB64;
+            generatedImages[result.index] = { seed: result.seed, dataUrl };
+
+            const imageItem = document.createElement('div');
+            imageItem.className = 'image-item';
+
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.alt = 'Generated Image';
+            img.addEventListener('click', () => {
+              document.getElementById('modal').style.display = 'flex';
+              document.getElementById('modalImg').src = dataUrl;
+            });
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'btn btn-primary btn-sm mt-2';
+            downloadBtn.innerText = 'Download';
+            downloadBtn.addEventListener('click', () => downloadImage(result.index));
+
+            imageItem.appendChild(img);
+            imageItem.appendChild(downloadBtn);
+            imageDisplayArea.appendChild(imageItem);
+
+            return result;
+          }));
+
+          if (promises.length >= concurrentRequests || i === batchCount - 1) {
+            await Promise.all(promises.splice(0, concurrentRequests));
+          }
+        }
+
+        updateStatus(`Batch generation complete: ${batchCount} images generated.`);
+        downloadAllBtn.disabled = false;
+      } catch (error) {
+        showError("Error: " + error.message);
+      } finally {
+        toggleLoadingSpinner(false);
+      }
+    }
+
+    function downloadImage(index) {
+      const { dataUrl, seed } = generatedImages[index];
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `image_${seed}.png`;
+      a.click();
+    }
+
+    function downloadAllAsZip() {
+      const zip = new JSZip();
+      generatedImages.forEach((image, index) => {
+        const { dataUrl, seed } = image;
+        const base64 = dataUrl.split(',')[1];
+        zip.file(`image_${seed}.png`, base64, { base64: true });
+      });
+      zip.generateAsync({ type: "blob" }).then(function (content) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(content);
+        a.download = "images.zip";
+        a.click();
+      });
+    }
+
+    const modal = document.getElementById('modal');
+    const closeBtn = document.querySelector('.close');
+    closeBtn.addEventListener('click', () => modal.style.display = 'none');
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
+
+    document.getElementById('batchBtn').addEventListener('click', generateBatch);
+    document.getElementById('downloadAllBtn').addEventListener('click', downloadAllAsZip);
+  </script>
+</body>
+</html>
