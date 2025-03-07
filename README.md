@@ -38,7 +38,7 @@ Sends POST requests from your browser to the Venice.ai API. Uses JSZip for batch
 
 ### Usage
 
-    - Enter your API key (auto-prefixed with "Bearer ").
+    - Enter your API key .
     - Set your prompt, negative prompt, and other parameters.
     - Click "Generate Images" to create and view results.
 
