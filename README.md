@@ -1,4 +1,4 @@
-# Venice.ai Image Generator
+# Venice.ai Image Generation
 
 A sleek, browser-based tool for generating AI images using the [Venice.ai API](https://venice.ai/chat?ref=bwY1lo). Create single images or batches with customizable settings—no backend needed.
 
